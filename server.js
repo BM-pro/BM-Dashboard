@@ -1,14 +1,12 @@
-// server.js
 const express = require('express');
 const app = express();
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 
-require('dotenv').config(); // Add this at the top
+require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
-
 const MESSAGES_FILE = path.join(__dirname, 'messages.json');
 
 app.use(cors());
@@ -21,28 +19,49 @@ app.get('/', (req, res) => {
 
 // Ensure messages file exists
 if (!fs.existsSync(MESSAGES_FILE)) {
-  fs.writeFileSync(MESSAGES_FILE, JSON.stringify([]));
+  fs.writeFileSync(MESSAGES_FILE, JSON.stringify([], null, 2));
 }
 
-// Get all messages
+// Utility: read messages safely
+function readMessages() {
+  try {
+    const data = fs.readFileSync(MESSAGES_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    console.error("Error reading messages file:", err);
+    return [];
+  }
+}
+
+// Utility: write messages safely
+function writeMessages(messages) {
+  try {
+    fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
+  } catch (err) {
+    console.error("Error writing messages file:", err);
+  }
+}
+
+// GET all messages
 app.get('/api/messages', (req, res) => {
-  const messages = JSON.parse(fs.readFileSync(MESSAGES_FILE));
+  const messages = readMessages();
   res.json(messages);
 });
 
-// Post a new message
+// POST a new message
 app.post('/api/messages', (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: 'Message text is required' });
 
-  const newMessage = {
-    time: new Date().toLocaleTimeString(),
-    text
-  };
+  // Format time as HH:MM (24h)
+  const now = new Date();
+  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  const messages = JSON.parse(fs.readFileSync(MESSAGES_FILE));
+  const newMessage = { time, text };
+
+  const messages = readMessages();
   messages.push(newMessage);
-  fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages));
+  writeMessages(messages);
 
   res.status(201).json(newMessage);
 });
