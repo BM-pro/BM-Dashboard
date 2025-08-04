@@ -191,5 +191,23 @@
     setInterval(loadMessages, 2000);
     loadMessages();
   </script>
+  <p id="onlineCount">👥 يتم التحميل...</p>
+<script>
+  function updateOnlineUsers() {
+    fetch('/online-users')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('onlineCount').textContent =
+          `👥 عدد المستخدمين المتصلين الآن: ${data.online}`;
+      })
+      .catch(() => {
+        document.getElementById('onlineCount').textContent =
+          '📡 تعذر جلب عدد المتصلين';
+      });
+  }
+
+  updateOnlineUsers();
+  setInterval(updateOnlineUsers, 5000);
+</script>
 </body>
 </html>

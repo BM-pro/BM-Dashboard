@@ -3,6 +3,7 @@ const app = express();
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const activeUsers = new Map();
 
 require('dotenv').config();
 
@@ -64,6 +65,28 @@ app.post('/api/messages', (req, res) => {
   writeMessages(messages);
 
   res.status(201).json(newMessage);
+});
+
+app.post('/track-online', (req, res) => {
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  activeUsers.set(ip, Date.now());
+  res.sendStatus(200);
+});
+
+app.get('/online-users', (req, res) => {
+  const now = Date.now();
+  const ACTIVE_WINDOW = 30000; // 30 seconds
+
+  let count = 0;
+  for (let [ip, lastSeen] of activeUsers.entries()) {
+    if (now - lastSeen < ACTIVE_WINDOW) {
+      count++;
+    } else {
+      activeUsers.delete(ip); // Remove inactive
+    }
+  }
+
+  res.json({ online: count });
 });
 
 app.listen(PORT, () => {
